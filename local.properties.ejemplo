@@ -1,0 +1,14 @@
+    ## Este archivo es un EJEMPLO de configuración de credenciales
+  privadas locales (RF08).
+    ## Copia estas líneas dentro de tu archivo 'local.properties' en la
+  raíz del proyecto.
+
+    # 1. Clave de API de Google Maps (Reemplaza con tu clave de Google
+  Cloud):
+    MAPS_API_KEY=AIzaSyTU_API_KEY_DE_GOOGLE_MAPS_AQUI
+
+    # 2. Ruta local del SDK de Android (Android Studio la genera
+  automáticamente):
+    # En Windows: sdk.
+  dir=C\:\\Users\\TuUsuario\\AppData\\Local\\Android\\Sdk
+    # En macOS:   sdk.dir=/Users/TuUsuario/Library/Android/sdk

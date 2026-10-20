@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permisos de Internet para Firebase Firestore y descarga de mapas (RF03, RF05) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Permisos de Ubicación GPS (RF04): Precisa (GPS) y Aproximada (Red/WiFi) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="GeoApp"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.GeoApp">
+
+        <!-- Meta-data para inyectar la API Key de Google Maps leída desde local.properties (RF05 y RF08) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
+        <!-- Pantalla Principal (Launcher) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Pantallas secundarias del proyecto -->
+        <activity
+            android:name=".RegistroActivity"
+            android:exported="false"
+            android:label="Registrar Incidencia" />
+
+        <activity
+            android:name=".ListadoActivity"
+            android:exported="false"
+            android:label="Historial de Incidencias" />
+
+        <activity
+            android:name=".MapaActivity"
+            android:exported="false"
+            android:label="Mapa de Incidencias" />
+
+    </application>
+
+</manifest>

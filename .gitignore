@@ -1,0 +1,20 @@
+# Archivos de compilacion de Gradle y Android Studio.
+*.iml
+.gradle
+/build
+/captures
+.externalNativeBuild
+.cxx
+**/build/
+
+# Configuración local del IDE
+/.idea/
+.DS_Store
+
+# SEGURIDAD OBLIGATORIA (RF08):
+# Excluir propiedades locales (donde va la API Key de Google Maps 
+# y el archivo de configuracion privado de Firebase (google-services.json
+
+local.properties
+app/google-services.json
+google-services.json
