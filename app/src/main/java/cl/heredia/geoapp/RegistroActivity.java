@@ -22,27 +22,29 @@ import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
 /**
- * RegistroActivity (RF02 y RF04 - Commit 3):
- * Incorpora la obtencion de coordenadas reales mediante FusedLocationProviderClient
- * y la gestion completa de permisos de ubicacion en tiempo de ejecucion.
+ * RegistroActivity (RF02, RF03 y RF04 - Commit 4):
+ * Valida el formulario, obtiene coordenadas GPS y persiste la incidencia en
+ * la base de datos NoSQL en la nube Firebase Cloud Firestore.
  */
 public class RegistroActivity extends AppCompatActivity {
 
-    // Constante para identificar nuestra solicitud de permiso de GPS
     private static final int CODIGO_PERMISO_UBICACION = 1001;
 
     private EditText etTitulo, etDescripcion, etFechaHora, etLatitud, etLongitud;
     private Spinner spCategoria;
     private Button btnObtenerGps, btnGuardarIncidencia;
 
-    // Cliente de ubicacion de Google Play Services (RF04)
     private FusedLocationProviderClient fusedLocationClient;
+    // Instancia de la base de datos en la nube Cloud Firestore (RF03)
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,10 +61,11 @@ public class RegistroActivity extends AppCompatActivity {
         btnObtenerGps = findViewById(R.id.btnObtenerGps);
         btnGuardarIncidencia = findViewById(R.id.btnGuardarIncidencia);
 
-        // 2. Inicializar el cliente de ubicación GPS
+        // 2. Inicializar servicios de GPS y Firebase Firestore
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        db = FirebaseFirestore.getInstance();
 
-        // 3. Configurar el Spinner de categorias
+        // 3. Configurar Spinner de categorias
         String[] categorias = {"Seleccione categoría...", "Vialidad", "Alumbrado", "Basura", "Otro"};
         ArrayAdapter<String> adapterSpinner = new ArrayAdapter<>(
                 this,
@@ -75,7 +78,7 @@ public class RegistroActivity extends AppCompatActivity {
         // 4. Autocompletar Fecha y Hora actual
         cargarFechaHoraActual();
 
-        // 5. Boton para obtener ubicacion GPS verificando permisos (RF04)
+        // 5. Boton GPS con solicitud de permisos en tiempo de ejecucion
         btnObtenerGps.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -83,32 +86,72 @@ public class RegistroActivity extends AppCompatActivity {
             }
         });
 
-        // 6. Boton Guardar (valida campos; en Commit 4 se conecta a Firestore)
+        // 6. Boton Guardar en Firestore (RF03)
         btnGuardarIncidencia.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (validarCampos()) {
-                    Toast.makeText(RegistroActivity.this,
-                            "Datos y coordenadas validados correctamente.",
-                            Toast.LENGTH_LONG).show();
+                    guardarEnFirestore();
                 }
             }
         });
     }
 
     /**
-     * Comprueba si el usuario ya concedio el permiso de ubicacion.
-     * Si no lo ha concedido, muestra el cuadro de dialogo del sistema solicitandolo.
+     * Envia el objeto Incidencia a la coleccion "incidencias" de Firebase Cloud Firestore.
+     * Maneja eventos de exito y de error de red sin congelar ni cerrar la app.
      */
+    private void guardarEnFirestore() {
+        String titulo = etTitulo.getText().toString().trim();
+        String descripcion = etDescripcion.getText().toString().trim();
+        String categoria = spCategoria.getSelectedItem().toString();
+        String fechaHora = etFechaHora.getText().toString().trim();
+        double latitud = Double.parseDouble(etLatitud.getText().toString().trim());
+        double longitud = Double.parseDouble(etLongitud.getText().toString().trim());
+
+        // Deshabilitar boton temporalmente para evitar doble envio accidental
+        btnGuardarIncidencia.setEnabled(false);
+        Toast.makeText(this, "Guardando incidencia en la nube...", Toast.LENGTH_SHORT).show();
+
+        // Crear objeto modelo Incidencia (el ID se generara automaticamente en Firestore)
+        Incidencia nuevaIncidencia = new Incidencia(
+                null, titulo, descripcion, categoria, fechaHora, latitud, longitud
+        );
+
+        // Guardar en la coleccion "incidencias" de Firestore
+        db.collection("incidencias")
+                .add(nuevaIncidencia)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Toast.makeText(RegistroActivity.this,
+                                "Incidencia registrada con éxito (ID: " + documentReference.getId() + ")",
+                                Toast.LENGTH_LONG).show();
+                        // Regresar al menu principal tras guardar exitosamente
+                        finish();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        // CONTINGENCIA: Si falla la conexion o las reglas de seguridad rechazan la escritura
+                        btnGuardarIncidencia.setEnabled(true);
+                        mostrarAlertaError(
+                                "Error al Guardar en la Nube",
+                                "No se pudo registrar la incidencia en Firestore. " +
+                                "Verifique su conexión a Internet o reglas de acceso. Detalle: " + e.getMessage()
+                        );
+                    }
+                });
+    }
+
     private void verificarPermisosYObtenerUbicacion() {
         int permisoFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
         int permisoCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
 
         if (permisoFine == PackageManager.PERMISSION_GRANTED || permisoCoarse == PackageManager.PERMISSION_GRANTED) {
-            // Ya tenemos permiso concedido: procedemos a leer el GPS
             obtenerCoordenadasGps();
         } else {
-            // No tenemos permiso: lo pedimos en tiempo de ejecucion al usuario
             ActivityCompat.requestPermissions(
                     this,
                     new String[]{
@@ -120,12 +163,7 @@ public class RegistroActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Obtiene la ubicacion del dispositivo usando FusedLocationProviderClient.
-     * Incluye contingencia si getLastLocation() devuelve null (GPS apagado o sin cache previa).
-     */
     private void obtenerCoordenadasGps() {
-        // Verificacion de seguridad requerida por el compilador de Android
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -138,11 +176,8 @@ public class RegistroActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(Location location) {
                         if (location != null) {
-                            // Caso exitoso: tenemos una ubicacion valida en cache
                             mostrarUbicacionEnFormulario(location);
                         } else {
-                            // CONTINGENCIA: Si getLastLocation() es null (ej. recien se activo el GPS),
-                            // forzamos una lectura activa en tiempo real con getCurrentLocation()
                             solicitarUbicacionActiva();
                         }
                     }
@@ -156,10 +191,6 @@ public class RegistroActivity extends AppCompatActivity {
                 });
     }
 
-    /**
-     * Solicita una coordenada fresca al hardware GPS cuando getLastLocation() es null.
-     * Si el GPS del teléfono está fisicamente apagado, location volvera a ser null y se avisa al usuario.
-     */
     private void solicitarUbicacionActiva() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -174,7 +205,6 @@ public class RegistroActivity extends AppCompatActivity {
                         if (location != null) {
                             mostrarUbicacionEnFormulario(location);
                         } else {
-                            //El GPS esta apagado o sin cobertura
                             mostrarAlertaError(
                                     "GPS Apagado o Sin Señal",
                                     "No se pudo obtener la ubicación (location == null). " +
@@ -187,14 +217,11 @@ public class RegistroActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         mostrarAlertaError("Error de Ubicación Activa",
-                                "Fallo al solicitar ubicación en tiempo real: " + e.getMessage());
+                                "Fallo al solicitar ubicación fresca: " + e.getMessage());
                     }
                 });
     }
 
-    /**
-     * Escribe la latitud y longitud obtenidas en los EditText bloqueados del formulario.
-     */
     private void mostrarUbicacionEnFormulario(Location location) {
         etLatitud.setError(null);
         etLatitud.setText(String.valueOf(location.getLatitude()));
@@ -202,35 +229,25 @@ public class RegistroActivity extends AppCompatActivity {
         Toast.makeText(this, "Ubicación GPS obtenida con éxito", Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * Callback que recibe la respuesta del usuario al cuadro de dialogo de permisos (RF04).
-     * Maneja explicitamente cuando el usuario DENIEGA el permiso.
-     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         if (requestCode == CODIGO_PERMISO_UBICACION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // El usuario ACEPTO el permiso
                 Toast.makeText(this, "Permiso de ubicación concedido", Toast.LENGTH_SHORT).show();
                 obtenerCoordenadasGps();
             } else {
-                // CONTINGENCIA OBLIGATORIA: El usuario DENEGO el permiso
                 mostrarAlertaError(
                         "Permiso de Ubicación Denegado",
                         "Has rechazado el permiso de GPS. GeoApp necesita tu ubicación para " +
-                        "georreferenciar la incidencia en terreno. Puedes volver a presionar 'Obtener Ubicación GPS' " +
+                        "georreferenciar la incidencia. Puedes volver a presionar 'Obtener Ubicación GPS' " +
                         "para conceder el permiso sin que la aplicación se cierre."
                 );
             }
         }
     }
 
-    /**
-     * Muestra un cuadro de dialogo informativo para que el usuario entienda cualquier contingencia
-     * sin que la aplicación sufra cierres inesperados (crashes).
-     */
     private void mostrarAlertaError(String titulo, String mensaje) {
         new AlertDialog.Builder(this)
                 .setTitle(titulo)
