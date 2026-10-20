@@ -1,7 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-</LinearLayout>
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="GeoRegistro"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sistema de Reporte de Incidencias en Terreno"
+            android:textSize="14sp"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Botones de navegacion principal (RF01) -->
+        <Button
+            android:id="@+id/btnIrRegistro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Registrar Nueva Incidencia"
+            android:padding="14dp"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnIrListado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Ver Historial de Incidencias"
+            android:padding="14dp"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnIrMapa"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3. Ver Mapa de Incidencias"
+            android:padding="14dp"
+            android:layout_marginBottom="28dp" />
+
+        <!-- Panel para el Sensor Acelerometro que se activara en el Commit 5 (RF06) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#EFEFEF"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Monitor de Sensor Acelerómetro (Terreno)"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvValoresSensor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ejes X: 0.00 | Y: 0.00 | Z: 0.00 m/s²"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvEstadoSacudida"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Estado: Normal (Sin movimientos bruscos)"
+                android:textStyle="bold"
+                android:textColor="#2E7D32"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
