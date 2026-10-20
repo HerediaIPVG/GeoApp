@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Reglas de seguridad estrictas para la coleccion "incidencias" (RF08):
+    // NO se deja abierta con "if true" para escritura, sino que se valida
+    // que todos los campos obligatorios existan, no esten vacios y tengan el tipo y rango correcto.
+    match /incidencias/{documentoId} {
+
+      // Permitir lectura publica para el listado (RF03) y el mapa (RF05)
+      allow read: if true;
+
+      // Permitir crear un registro SOLO si cumple todas las validaciones de estructura y tipos
+      allow create: if request.resource.data.keys().hasAll([
+                        'titulo', 'descripcion', 'categoria', 'fechaHora', 'latitud', 'longitud'
+                      ])
+                    && request.resource.data.titulo is string
+                    && request.resource.data.titulo.size() > 0
+                    && request.resource.data.descripcion is string
+                    && request.resource.data.descripcion.size() > 0
+                    && request.resource.data.categoria in ['Vialidad', 'Alumbrado', 'Basura', 'Otro']
+                    && request.resource.data.fechaHora is string
+                    && request.resource.data.fechaHora.size() > 0
+                    && request.resource.data.latitud is number
+                    && request.resource.data.latitud >= -90 && request.resource.data.latitud <= 90
+                    && request.resource.data.longitud is number
+                    && request.resource.data.longitud >= -180 && request.resource.data.longitud <= 180;
+
+      // Bloquear borrado o modificacion no autorizada desde clientes externos
+      allow update, delete: if false;
+    }
+  }
+}
